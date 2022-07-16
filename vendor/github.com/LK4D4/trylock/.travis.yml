@@ -1,0 +1,13 @@
+language: go
+sudo: false
+go:
+  - 1.x
+  - master
+install:
+  - go get -t ./...
+  - go get golang.org/x/lint/golint
+script:
+  - go vet ./...
+  - test -z "$(golint ./... | tee /dev/stderr)"
+  - test -z "$(gofmt -s -l . | tee /dev/stderr)"
+  - go test -race -v ./...

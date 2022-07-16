@@ -1,0 +1,51 @@
+
+
+version: "3.8"
+services:
+  bench:
+    build: docker/bench
+    tty: true
+    volumes:
+      - ./docker/bench:/opt/bench
+      - ./docker/db:/opt/db
+      # - ./docker/db/gen/data:/home/isucon/bench/data
+      # - ./docker/bench/export:/home/isucon/export
+  server1: &server
+    build: .
+    environment:
+      - ISUCON_DB=${ISUCON_DB}
+      - ISUCON_DB_HOST=${ISUCON_DB_HOST}
+      - ISUCON_DB_USER=${ISUCON_DB_USER}
+      - ISUCON_DB_PASSWORD=${ISUCON_DB_PASSWORD}
+      - ISUCON_DB_PORT=${ISUCON_DB_PORT}
+      - REMOTE_DEBUG_PORT=${REMOTE_DEBUG_PORT}
+    ports:
+      - 11111:80
+      - ${REMOTE_DEBUG_PORT}:${REMOTE_DEBUG_PORT}
+    tty: true
+    volumes:
+      - .:/home/isucon/webapp
+      - ./docker/app/nginx/nginx.conf:/etc/nginx/nginx.conf
+      - ./docker/app/nginx/sites-available:/etc/nginx/sites-available
+      - ./docker/app/nginx/log/server1:/var/log/nginx
+    command: /usr/sbin/nginx -g 'daemon off;' -c /etc/nginx/nginx.conf
+  server2: 
+    <<: *server
+    ports:
+      - 22222:80
+    volumes:
+      - .:/home/isucon/webapp
+      - ./docker/app/nginx/nginx.conf:/etc/nginx/nginx.conf
+      - ./docker/app/nginx/sites-available:/etc/nginx/sites-available
+      - ./docker/app/nginx/log/server1:/var/log/nginx
+  db:
+    platform: linux/x86_64
+    build: ./docker/db
+    environment:
+      - MYSQL_DATABASE=${ISUCON_DB}
+      - MYSQL_USER=${ISUCON_DB_USER}
+      - MYSQL_PASSWORD=${ISUCON_DB_PASSWORD}
+      - MYSQL_ROOT_PASSWORD=root
+    volumes:
+      - ./docker/db/initdb:/docker-entrypoint-initdb.d
+      - ./docker/db/conf.d:/etc/mysql/conf.d
